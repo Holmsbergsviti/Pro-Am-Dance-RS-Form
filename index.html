@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<meta name="theme-color" content="#F2EAE0">
+<title>Pronađi svoj ples ✨ | PROAM dance Serbia</title>
+<meta name="description" content="Odgovori na nekoliko pitanja i pomoći ćemo ti da pronađeš plesnu školu ili trenera u Beogradu.">
+<meta property="og:title" content="PRONAĐI SVOJ PLES ✨">
+<meta property="og:description" content="Nekoliko pitanja — i predlažemo ti školu ili trenera u Beogradu.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/proam-logo.jpg">
+<link rel="icon" href="assets/proam-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F2EAE0;
+  --cream-2:#FBF6F1;
+  --ink:#3B2D28;
+  --ink-2:#6F5B51;
+  --brown:#7A6156;
+  --line:#DCCFC3;
+  --accent:#3B2D28;
+  --radius:16px;
+  --shadow:0 1px 2px rgba(59,45,40,.06), 0 8px 24px rgba(59,45,40,.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--cream);
+  color:var(--ink);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px;line-height:1.45;
+  min-height:100svh;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:contain;
+}
+.shell{
+  max-width:520px;margin:0 auto;min-height:100svh;
+  display:flex;flex-direction:column;
+  background:var(--cream);
+}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:20;
+  background:rgba(242,234,224,.92);
+  backdrop-filter:saturate(1.2) blur(8px);
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid transparent;
+  transition:border-color .2s;
+}
+header.scrolled{border-bottom-color:var(--line)}
+.iconbtn{
+  width:40px;height:40px;flex:0 0 40px;border:0;border-radius:50%;
+  background:transparent;color:var(--ink);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.iconbtn:active{background:rgba(59,45,40,.07)}
+.iconbtn[hidden]{display:none}
+.progress{flex:1;height:4px;border-radius:99px;background:var(--line);overflow:hidden}
+.progress > i{display:block;height:100%;width:0;background:var(--ink);border-radius:99px;transition:width .35s cubic-bezier(.4,0,.2,1)}
+.lang{display:flex;gap:2px;background:rgba(59,45,40,.06);border-radius:99px;padding:3px}
+.lang button{
+  border:0;background:transparent;color:var(--ink-2);
+  font:600 12px/1 Inter,sans-serif;letter-spacing:.06em;
+  padding:7px 9px;border-radius:99px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.lang button[aria-pressed="true"]{background:var(--cream-2);color:var(--ink);box-shadow:0 1px 2px rgba(59,45,40,.12)}
+
+/* ---------- layout ---------- */
+main{flex:1;padding:8px 16px 24px;display:flex;flex-direction:column}
+.screen{animation:in .32s cubic-bezier(.22,.8,.3,1) both;display:flex;flex-direction:column;flex:1}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.screen{animation:none}}
+.step-label{font:500 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--brown);margin:14px 0 10px}
+h1{font-family:"Playfair Display",Georgia,serif;font-weight:600;font-size:30px;text-wrap:balance;line-height:1.15;margin:0 0 8px;letter-spacing:-.01em}
+h2{font-family:"Playfair Display",Georgia,serif;font-weight:600;font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
+.sub{color:var(--ink-2);font-size:15px;margin:0 0 18px}
+.hint{color:var(--brown);font-size:13px;margin:2px 0 16px}
+
+/* ---------- options ---------- */
+.opts{display:flex;flex-direction:column;gap:10px;margin:0 0 8px}
+.opt{
+  width:100%;min-height:58px;text-align:left;
+  display:flex;align-items:center;gap:12px;
+  padding:15px 16px;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--cream-2);color:var(--ink);
+  font:500 16px/1.3 Inter,sans-serif;cursor:pointer;
+  transition:transform .12s ease, border-color .15s, background .15s, box-shadow .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.opt:active{transform:scale(.985)}
+.opt .mark{
+  width:22px;height:22px;flex:0 0 22px;border:1.5px solid var(--line);
+  border-radius:50%;background:var(--cream-2);
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.opt.multi .mark{border-radius:7px}
+.opt .mark svg{width:13px;height:13px;opacity:0;transform:scale(.6);transition:.15s;color:var(--cream-2)}
+.opt[aria-pressed="true"]{border-color:var(--ink);background:#fff;box-shadow:var(--shadow)}
+.opt[aria-pressed="true"] .mark{background:var(--ink);border-color:var(--ink)}
+.opt[aria-pressed="true"] .mark svg{opacity:1;transform:none}
+
+/* ---------- fields ---------- */
+.field{margin:0 0 14px}
+.field label{display:block;font:500 13px/1 Inter,sans-serif;color:var(--ink-2);margin:0 0 7px}
+.field .opt-note{margin-top:10px}
+input[type=text],input[type=email],input[type=tel]{
+  width:100%;height:54px;padding:0 15px;font-size:16px;color:var(--ink);
+  background:var(--cream-2);border:1px solid var(--line);border-radius:14px;
+  font-family:inherit;
+}
+input:focus{outline:none;border-color:var(--ink);background:#fff}
+input::placeholder{color:#B6A79B}
+.ig-wrap{display:flex;align-items:center;background:var(--cream-2);border:1px solid var(--line);border-radius:14px;transition:.15s}
+.ig-wrap:focus-within{border-color:var(--ink);background:#fff}
+.ig-wrap span{padding:0 2px 0 15px;color:var(--brown);font-size:16px}
+.ig-wrap input{border:0;background:transparent;padding-left:2px}
+.ig-wrap input:focus{background:transparent}
+.opt-tag{font-size:12px;color:var(--brown);font-weight:400}
+
+/* ---------- footer / buttons ---------- */
+.foot{
+  position:sticky;bottom:0;z-index:15;margin-top:auto;
+  padding:12px 0 calc(env(safe-area-inset-bottom) + 12px);
+  background:linear-gradient(to top,var(--cream) 68%,rgba(242,234,224,0));
+}
+.btn{
+  width:100%;min-height:56px;border:0;border-radius:99px;
+  background:var(--ink);color:var(--cream);
+  font:600 16px/1 Inter,sans-serif;letter-spacing:.01em;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  transition:transform .12s ease,opacity .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:active{transform:scale(.985)}
+a.btn{text-decoration:none}
+.btn[disabled]{opacity:.35;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink-2);min-height:46px;font-weight:500;font-size:14px}
+.legal{font-size:12px;color:var(--brown);text-align:center;margin:12px 4px 0;line-height:1.45}
+.err{background:#F6E2DC;border:1px solid #E0BCB0;color:#7A3B2A;border-radius:12px;padding:12px 14px;font-size:14px;margin:0 0 12px}
+
+/* ---------- intro ---------- */
+.intro{align-items:center;justify-content:center;text-align:center;padding-top:2vh}
+.intro .logo{width:min(230px,62%);margin:auto auto 4px;display:block}
+.intro h1{font-size:32px;margin-top:10px;line-height:1.1}
+.intro .sub{font-size:16px;max-width:330px;margin-inline:auto}
+.meta{display:flex;gap:18px;justify-content:center;color:var(--brown);font-size:13px;margin:2px 0 26px}
+.meta span{display:flex;align-items:center;gap:6px}
+.rule{width:44px;height:1px;background:var(--line);margin:18px auto}
+
+/* ---------- summary / thanks ---------- */
+.thanks{align-items:center;justify-content:center;text-align:center;flex:1}
+.spark{font-size:40px;line-height:1;margin:auto auto 14px}
+.card{background:var(--cream-2);border:1px solid var(--line);border-radius:var(--radius);padding:4px 16px;margin:6px 0 0;text-align:left}
+.card .row{display:flex;gap:14px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.card .row:last-child{border-bottom:0}
+.card .row b{flex:0 0 34%;font-weight:500;color:var(--brown)}
+.card .row span{flex:1;color:var(--ink)}
+.spin{width:18px;height:18px;border:2px solid rgba(242,234,224,.35);border-top-color:var(--cream);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header id="hdr">
+    <button class="iconbtn" id="back" hidden aria-label="Nazad">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="progress" id="prog" hidden><i></i></div>
+    <div style="flex:1" id="spacer"></div>
+    <div class="lang" role="group" aria-label="Jezik / Язык">
+      <button type="button" data-lang="sr" aria-pressed="true">SRB</button>
+      <button type="button" data-lang="ru" aria-pressed="false">RUS</button>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<script>
+/* ============================================================
+   PRONAĐI SVOJ PLES — PROAM dance Serbia
+   Podesi ENDPOINT nakon deploy-a Google Apps Script Web App-a.
+   ============================================================ */
+const CONFIG = {
+  // Apps Script Web App URL (vidi apps-script/Code.gs i README.md)
+  ENDPOINT: "https://script.google.com/macros/s/AKfycbxHl9E57ZZby2YjB5xwAqORJ9Ly3pxJP8KOA4KmGOWItwslbEvITT62j__fsnM9s5k/exec",
+  // Instagram handle bez @ (ostavi prazno da se dugme ne prikazuje)
+  INSTAGRAM: "proam.dance.rs"
+};
+
+/* ---------------- i18n ---------------- */
+const T = {
+  brand:      {sr:"PRONAĐI SVOJ PLES", ru:"PRONAĐI SVOJ PLES"},
+  introSub:   {sr:"Odgovori na 8 kratkih pitanja — predložićemo ti plesnu školu ili trenera u Beogradu koji ti odgovara.",
+               ru:"Ответь на 8 коротких вопросов — мы подберём танцевальную школу или тренера в Белграде, который тебе подходит."},
+  time2min:   {sr:"2 minuta", ru:"2 минуты"},
+  free:       {sr:"Besplatno", ru:"Бесплатно"},
+  start:      {sr:"Počni", ru:"Начать"},
+  next:       {sr:"Dalje", ru:"Далее"},
+  send:       {sr:"Pošalji", ru:"Отправить"},
+  sending:    {sr:"Šaljem…", ru:"Отправляем…"},
+  skip:       {sr:"Preskoči", ru:"Пропустить"},
+  step:       {sr:"Pitanje", ru:"Вопрос"},
+  of:         {sr:"od", ru:"из"},
+  multiHint:  {sr:"Možeš izabrati više odgovora", ru:"Можно выбрать несколько вариантов"},
+  contactT:   {sr:"Skoro gotovo!", ru:"Почти готово!"},
+  contactS:   {sr:"Kako da ti pošaljemo preporuku?", ru:"Как отправить тебе рекомендацию?"},
+  name:       {sr:"Ime", ru:"Имя"},
+  namePh:     {sr:"Tvoje ime", ru:"Твоё имя"},
+  ig:         {sr:"Instagram", ru:"Instagram"},
+  igPh:       {sr:"korisnicko_ime", ru:"имя_пользователя"},
+  email:      {sr:"Email", ru:"Email"},
+  phone:      {sr:"Telefon", ru:"Телефон"},
+  optional:   {sr:"opciono", ru:"необязательно"},
+  otherPh:    {sr:"Napiši koji ples", ru:"Напиши, какой танец"},
+  legal:      {sr:"Podatke koristimo samo da ti pošaljemo preporuku. Ne delimo ih ni sa kim trećim.",
+               ru:"Данные используем только для того, чтобы отправить тебе рекомендацию. Никому не передаём."},
+  errSend:    {sr:"Slanje nije uspelo. Proveri internet i pokušaj ponovo.", ru:"Не удалось отправить. Проверь интернет и попробуй ещё раз."},
+  retry:      {sr:"Pokušaj ponovo", ru:"Попробовать снова"},
+  thanksT:    {sr:"Hvala!", ru:"Hvala! (Спасибо!)"},
+  thanksS:    {sr:"Pregledaćemo vaše odgovore i pomoći vam da pronađete odgovarajuću školu ili trenera.",
+               ru:"Мы посмотрим твои ответы и поможем найти подходящую школу или тренера."},
+  thanksWhen: {sr:"Javljamo se u roku od 24–48h na Instagram.", ru:"Ответим в течение 24–48 часов в Instagram."},
+  igBtn:      {sr:"Zaprati nas na Instagramu", ru:"Подпишись на нас в Instagram"}
+};
+const t = k => (T[k] && (T[k][lang] || T[k].sr)) || "";
+const L = o => (o && (o[lang] || o.sr)) || "";
+
+/* ---------------- pitanja ---------------- */
+const O = (sr, ru, extra) => Object.assign({sr, ru}, extra || {});
+const QUESTIONS = [
+  {
+    key:"direction", col:"Direction", multi:false,
+    title:{sr:"Koji ples te zanima?", ru:"Какое направление тебя интересует?"},
+    options:[
+      O("Latino (Latin)","Латина (Latin)"),
+      O("Standard","Стандарт (Standard)"),
+      O("Salsa / Bachata","Сальса / Бачата"),
+      O("Argentinski tango","Аргентинское танго"),
+      O("Drugo","Другое",{other:true}),
+      O("Ne znam / želim preporuku","Не знаю / хочу рекомендацию")
+    ]
+  },
+  {
+    key:"format", col:"Format", multi:false,
+    title:{sr:"Individualni ili grupni časovi?", ru:"Индивидуальные или групповые занятия?"},
+    options:[
+      O("Individualni","Индивидуальные"),
+      O("Grupni","Групповые"),
+      O("Oboje","И то, и другое"),
+      O("Ne znam","Не знаю")
+    ]
+  },
+  {
+    key:"level", col:"Level", multi:false,
+    title:{sr:"Tvoj nivo?", ru:"Твой уровень?"},
+    options:[
+      O("Početnik","Начинающий"),
+      O("Malo iskustva","Немного опыта"),
+      O("Iskusan plesač","Опытный танцор"),
+      O("Takmičar / želim da se takmičim","Соревнуюсь / хочу соревноваться")
+    ]
+  },
+  {
+    key:"goal", col:"Goal", multi:true,
+    title:{sr:"Šta ti je cilj?", ru:"Какая у тебя цель?"},
+    options:[
+      O("Hobi","Хобби"),
+      O("Samopouzdanje / izražavanje","Уверенность / самовыражение"),
+      O("Druženje","Общение"),
+      O("Fizička aktivnost","Физическая активность"),
+      O("Nastupi","Выступления"),
+      O("Takmičenja","Соревнования"),
+      O("Razvoj plesnih veština","Развитие танцевальных навыков")
+    ]
+  },
+  {
+    key:"location", col:"Location", multi:true,
+    title:{sr:"Koji deo Beograda ti odgovara?", ru:"Какой район Белграда тебе удобен?"},
+    options:[
+      O("Stari grad","Стари град"),
+      O("Vračar","Врачар"),
+      O("Savski venac","Савски венац"),
+      O("Novi Beograd","Нови Београд"),
+      O("Zemun","Земун"),
+      O("Voždovac","Вождовац"),
+      O("Zvezdara","Звездара"),
+      O("Palilula","Палилула"),
+      O("Čukarica","Чукарица"),
+      O("Rakovica","Раковица"),
+      O("Lokacija mi nije važna","Локация не важна",{exclusive:true})
+    ]
+  },
+  {
+    key:"time", col:"Time", multi:true,
+    title:{sr:"Kada ti odgovara da treniraš?", ru:"Когда тебе удобно заниматься?"},
+    options:[
+      O("Jutro","Утро"),
+      O("Dan","День"),
+      O("Veče","Вечер"),
+      O("Vikend","Выходные"),
+      O("Fleksibilan/na sam","Гибкий график",{exclusive:true})
+    ]
+  },
+  {
+    key:"frequency", col:"Frequency", multi:false,
+    title:{sr:"Koliko često želiš da treniraš?", ru:"Как часто хочешь заниматься?"},
+    options:[
+      O("1x nedeljno","1 раз в неделю"),
+      O("2x nedeljno","2 раза в неделю"),
+      O("3x+ nedeljno","3+ раза в неделю"),
+      O("Po dogovoru","По договорённости")
+    ]
+  },
+  {
+    key:"priorities", col:"Priorities", multi:true,
+    title:{sr:"Šta ti je najvažnije pri izboru?", ru:"Что для тебя важнее всего при выборе?"},
+    options:[
+      O("Lokacija","Локация"),
+      O("Cena","Цена"),
+      O("Termin","Расписание"),
+      O("Trener","Тренер"),
+      O("Atmosfera","Атмосфера"),
+      O("Nivo grupe","Уровень группы"),
+      O("Takmičenja / nastupi","Соревнования / выступления")
+    ]
+  }
+];
+const LAST = QUESTIONS.length;      // indeks contact ekrana
+const TOTAL = QUESTIONS.length + 1; // pitanja + kontakt
+
+/* ---------------- state ---------------- */
+let lang = (localStorage.getItem("psp_lang")) || ((navigator.language||"").toLowerCase().startsWith("ru") ? "ru" : "sr");
+let step = -1;                 // -1 intro, 0..N-1 pitanja, N kontakt, N+1 hvala
+let answers = {};              // key -> string | string[]
+let otherText = "";
+let contact = {name:"", ig:"", email:"", phone:""};
+let sending = false, sendError = false;
+
+const view = document.getElementById("view");
+const back = document.getElementById("back");
+const prog = document.getElementById("prog");
+const spacer = document.getElementById("spacer");
+const hdr = document.getElementById("hdr");
+
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------------- render ---------------- */
+function render(){
+  document.documentElement.lang = lang === "ru" ? "ru" : "sr";
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+
+  const showChrome = step >= 0 && step <= LAST;
+  back.hidden = !showChrome;
+  prog.hidden = !showChrome;
+  spacer.hidden = showChrome;
+  if (showChrome) prog.firstElementChild.style.width = ((step + 1) / TOTAL * 100) + "%";
+
+  if (step === -1) view.innerHTML = introHTML();
+  else if (step < LAST) view.innerHTML = questionHTML(QUESTIONS[step], step);
+  else if (step === LAST) view.innerHTML = contactHTML();
+  else view.innerHTML = thanksHTML();
+
+  wire();
+  window.scrollTo(0, 0);
+}
+
+function introHTML(){
+  return `<section class="screen intro">
+    <img class="logo" src="assets/proam-logo.png" alt="PROAM dance Serbia">
+    <h1>${t("brand").replace(/ ([^ ]*)$/, "&nbsp;$1")}&nbsp;<span aria-hidden="true">✨</span></h1>
+    <p class="sub">${esc(t("introSub"))}</p>
+    <div class="meta">
+      <span>⏱ ${esc(t("time2min"))}</span><span>•</span><span>${esc(t("free"))}</span>
+    </div>
+    <div class="foot" style="width:100%">
+      <button class="btn" data-act="start">${esc(t("start"))}</button>
+    </div>
+  </section>`;
+}
+
+function questionHTML(q, i){
+  const val = answers[q.key];
+  const sel = v => q.multi ? (Array.isArray(val) && val.indexOf(v) > -1) : val === v;
+  const opts = q.options.map(o => {
+    const v = o.sr;
+    return `<button type="button" class="opt${q.multi ? " multi" : ""}" data-val="${esc(v)}"
+      aria-pressed="${sel(v)}"><span class="mark">${CHECK}</span><span>${esc(L(o))}</span></button>`;
+  }).join("");
+
+  const other = q.options.some(o => o.other && sel(o.sr))
+    ? `<div class="field opt-note"><input type="text" id="otherText" placeholder="${esc(t("otherPh"))}" value="${esc(otherText)}" autocomplete="off"></div>`
+    : "";
+
+  const needsFoot = q.multi || other;
+  const canGo = q.multi ? (Array.isArray(val) && val.length > 0) : !!val;
+
+  return `<section class="screen" data-q="${q.key}">
+    <div class="step-label">${esc(t("step"))} ${i + 1} ${esc(t("of"))} ${TOTAL}</div>
+    <h2>${esc(L(q.title))}</h2>
+    ${q.multi ? `<p class="hint">${esc(t("multiHint"))}</p>` : `<div style="height:8px"></div>`}
+    <div class="opts">${opts}</div>
+    ${other}
+    ${needsFoot ? `<div class="foot"><button class="btn" data-act="next" ${canGo ? "" : "disabled"}>${esc(t("next"))}</button></div>` : ""}
+  </section>`;
+}
+
+function contactHTML(){
+  const ok = contact.name.trim() && contact.ig.trim();
+  return `<section class="screen">
+    <div class="step-label">${esc(t("step"))} ${TOTAL} ${esc(t("of"))} ${TOTAL}</div>
+    <h2>${esc(t("contactT"))}</h2>
+    <p class="sub">${esc(t("contactS"))}</p>
+    ${sendError ? `<div class="err">${esc(t("errSend"))}</div>` : ""}
+    <div class="field">
+      <label for="f_name">${esc(t("name"))}</label>
+      <input type="text" id="f_name" value="${esc(contact.name)}" placeholder="${esc(t("namePh"))}" autocomplete="given-name" enterkeyhint="next">
+    </div>
+    <div class="field">
+      <label for="f_ig">${esc(t("ig"))}</label>
+      <div class="ig-wrap"><span>@</span><input type="text" id="f_ig" value="${esc(contact.ig)}" placeholder="${esc(t("igPh"))}" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next"></div>
+    </div>
+    <div class="field">
+      <label for="f_email">${esc(t("email"))} <span class="opt-tag">— ${esc(t("optional"))}</span></label>
+      <input type="email" id="f_email" value="${esc(contact.email)}" placeholder="ime@mail.com" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next">
+    </div>
+    <div class="field">
+      <label for="f_phone">${esc(t("phone"))} <span class="opt-tag">— ${esc(t("optional"))}</span></label>
+      <input type="tel" id="f_phone" value="${esc(contact.phone)}" placeholder="+381 60 000 0000" enterkeyhint="done">
+    </div>
+    <p class="legal">${esc(t("legal"))}</p>
+    <div class="foot">
+      <button class="btn" data-act="send" ${ok && !sending ? "" : "disabled"}>
+        ${sending ? `<span class="spin"></span> ${esc(t("sending"))}` : esc(sendError ? t("retry") : t("send"))}
+      </button>
+    </div>
+  </section>`;
+}
+
+function thanksHTML(){
+  const ig = CONFIG.INSTAGRAM
+    ? `<div class="foot" style="width:100%"><a class="btn" href="https://instagram.com/${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener">${esc(t("igBtn"))}</a></div>`
+    : "";
+  return `<section class="screen thanks">
+    <div class="spark" aria-hidden="true">✨</div>
+    <h1>${esc(t("thanksT"))}</h1>
+    <p class="sub">${esc(t("thanksS"))}</p>
+    <div class="rule"></div>
+    <p class="legal">${esc(t("thanksWhen"))}</p>
+    ${ig}
+  </section>`;
+}
+
+/* ---------------- interakcije ---------------- */
+function wire(){
+  view.querySelectorAll(".opt").forEach(btn => {
+    btn.addEventListener("click", () => onOption(btn));
+  });
+  const act = view.querySelector("[data-act]");
+  view.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => {
+    const a = b.dataset.act;
+    if (a === "start") go(0);
+    else if (a === "next") go(step + 1);
+    else if (a === "send") submit();
+  }));
+  const ot = view.querySelector("#otherText");
+  if (ot) ot.addEventListener("input", e => { otherText = e.target.value; });
+
+  ["name","ig","email","phone"].forEach(k => {
+    const el = view.querySelector("#f_" + k);
+    if (!el) return;
+    el.addEventListener("input", e => {
+      let v = e.target.value;
+      if (k === "ig"){
+        v = normIg(v);
+        if (v !== e.target.value) e.target.value = v;   // nalepljen link → čist handle
+      }
+      contact[k] = v;
+      const sendBtn = view.querySelector('[data-act="send"]');
+      if (sendBtn) sendBtn.disabled = !(contact.name.trim() && contact.ig.trim()) || sending;
+    });
+    el.addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
+  });
+  if (act) act.blur();
+}
+
+function onOption(btn){
+  const q = QUESTIONS[step];
+  const v = btn.dataset.val;
+  const opt = q.options.find(o => o.sr === v);
+
+  if (q.multi){
+    let arr = Array.isArray(answers[q.key]) ? answers[q.key].slice() : [];
+    const excl = q.options.filter(o => o.exclusive).map(o => o.sr);
+    if (opt.exclusive){
+      arr = arr.indexOf(v) > -1 ? [] : [v];
+    } else {
+      arr = arr.filter(x => excl.indexOf(x) === -1);
+      const i = arr.indexOf(v);
+      if (i > -1) arr.splice(i, 1); else arr.push(v);
+    }
+    answers[q.key] = arr;
+    // menjamo samo stanje dugmadi — bez ponovnog crtanja ekrana (da lista ne "trepće")
+    view.querySelectorAll(".opt").forEach(b => b.setAttribute("aria-pressed", String(arr.indexOf(b.dataset.val) > -1)));
+    const nb = view.querySelector('[data-act="next"]');
+    if (nb) nb.disabled = arr.length === 0;
+    saveDraft();
+    return;
+  }
+
+  answers[q.key] = v;
+  if (opt.other){ render(); return; }        // "Drugo" → traži tekst
+  if (q.options.some(o => o.other) ) otherText = "";
+  btn.setAttribute("aria-pressed", "true");
+  view.querySelectorAll(".opt").forEach(b => { if (b !== btn) b.setAttribute("aria-pressed", "false"); });
+  setTimeout(() => go(step + 1), 230);        // auto-dalje
+}
+
+function go(n){
+  step = Math.max(-1, Math.min(LAST + 1, n));
+  saveDraft();
+  render();
+  if (step >= 0 && step <= LAST) history.pushState({step}, "");
+}
+window.addEventListener("popstate", e => {
+  if (step > -1 && step <= LAST){ step = Math.max(-1, step - 1); render(); }
+});
+back.addEventListener("click", () => { if (step > -1 && step <= LAST) history.back(); });
+document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => {
+  lang = b.dataset.lang;
+  localStorage.setItem("psp_lang", lang);
+  render();
+}));
+window.addEventListener("scroll", () => hdr.classList.toggle("scrolled", window.scrollY > 4), {passive:true});
+
+/* ---------------- draft (da se ne izgubi kod slučajnog reload-a) ---------------- */
+function saveDraft(){
+  try { localStorage.setItem("psp_draft", JSON.stringify({step, answers, otherText, contact, ts:Date.now()})); } catch(e){}
+}
+(function loadDraft(){
+  try {
+    const d = JSON.parse(localStorage.getItem("psp_draft") || "null");
+    if (d && Date.now() - d.ts < 36e5 && d.step > -1 && d.step <= LAST){
+      answers = d.answers || {}; otherText = d.otherText || ""; contact = d.contact || contact;
+    }
+  } catch(e){}
+})();
+
+/* ---------------- slanje ---------------- */
+// "@ana", "instagram.com/ana/", "https://www.instagram.com/ana?igsh=..." → "ana"
+function normIg(v){
+  return String(v || "").trim()
+    .replace(/^@+/, "")
+    .replace(/^https?:\/\//i, "")
+    .replace(/^(www\.)?instagram\.com\//i, "")
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "")
+    .replace(/\s+/g, "");
+}
+
+function directionValue(){
+  const v = answers.direction || "";
+  return (v === "Drugo" && otherText.trim()) ? "Drugo: " + otherText.trim() : v;
+}
+function payload(){
+  const j = k => Array.isArray(answers[k]) ? answers[k].join(", ") : (answers[k] || "");
+  return {
+    name: contact.name.trim(),
+    ig: normIg(contact.ig) ? "@" + normIg(contact.ig) : "",
+    email: contact.email.trim(),
+    phone: contact.phone.trim(),
+    language: lang === "ru" ? "RU" : "SR",
+    direction: directionValue(),
+    format: j("format"),
+    level: j("level"),
+    goal: j("goal"),
+    location: j("location"),
+    time: j("time"),
+    frequency: j("frequency"),
+    priorities: j("priorities"),
+    source: (new URLSearchParams(location.search).get("src") || "instagram")
+  };
+}
+
+async function submit(){
+  if (sending) return;
+  sending = true; sendError = false; render();
+  const body = JSON.stringify(payload());
+
+  if (!CONFIG.ENDPOINT){
+    console.warn("[PSP] CONFIG.ENDPOINT nije podešen — podaci nisu poslati:", body);
+    finish(); return;
+  }
+  try { localStorage.setItem("psp_last", body); } catch (e){}   // kopija, za svaki slučaj
+
+  try {
+    await post(body);
+    finish();
+  } catch (err){
+    await sleep(900);
+    try {                                     // drugi pokušaj
+      await post(body);
+      finish();
+    } catch (err2){
+      try { postViaForm(body); finish(); }    // rezerva za in-app browser-e (Instagram/TikTok)
+      catch (e3){ sending = false; sendError = true; render(); }
+    }
+  }
+}
+
+function post(body){
+  return fetch(CONFIG.ENDPOINT, {
+    method:"POST", mode:"no-cors", redirect:"follow",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body
+  });
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Rezervni put: klasičan form POST u skriveni iframe (bez CORS-a).
+function postViaForm(body){
+  const f = document.createElement("form");
+  const i = document.createElement("iframe");
+  i.name = "psp_sink"; i.style.display = "none";
+  f.method = "POST"; f.action = CONFIG.ENDPOINT; f.target = "psp_sink"; f.style.display = "none";
+  const inp = document.createElement("input");
+  inp.type = "hidden"; inp.name = "payload"; inp.value = body;
+  f.appendChild(inp);
+  document.body.appendChild(i); document.body.appendChild(f);
+  f.submit();
+}
+
+function finish(){
+  sending = false;
+  try { localStorage.removeItem("psp_draft"); } catch(e){}
+  step = LAST + 1;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
