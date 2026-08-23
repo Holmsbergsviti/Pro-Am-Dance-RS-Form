@@ -177,9 +177,10 @@ a.btn{text-decoration:none}
     </button>
     <div class="progress" id="prog" hidden><i></i></div>
     <div style="flex:1" id="spacer"></div>
-    <div class="lang" role="group" aria-label="Jezik / Язык">
+    <div class="lang" role="group" aria-label="Jezik / Язык / Language">
       <button type="button" data-lang="sr" aria-pressed="true">SRB</button>
       <button type="button" data-lang="ru" aria-pressed="false">RUS</button>
+      <button type="button" data-lang="en" aria-pressed="false">ENG</button>
     </div>
   </header>
   <main id="view"></main>
@@ -194,146 +195,154 @@ const CONFIG = {
   // Apps Script Web App URL (vidi apps-script/Code.gs i README.md)
   ENDPOINT: "https://script.google.com/macros/s/AKfycbxHl9E57ZZby2YjB5xwAqORJ9Ly3pxJP8KOA4KmGOWItwslbEvITT62j__fsnM9s5k/exec",
   // Instagram handle bez @ (ostavi prazno da se dugme ne prikazuje)
-  INSTAGRAM: "proam.dance.rs",
+  INSTAGRAM: "proamdance.rs",
   // Mora da bude isto kao TOKEN u apps-script/Code.gs
   TOKEN: "psp-2026"
 };
 
 /* ---------------- i18n ---------------- */
 const T = {
-  brand:      {sr:"PRONAĐI SVOJ PLES", ru:"PRONAĐI SVOJ PLES"},
+  brand:      {sr:"PRONAĐI SVOJ PLES", ru:"PRONAĐI SVOJ PLES", en:"PRONAĐI SVOJ PLES"},
   introSub:   {sr:"Odgovori na 8 kratkih pitanja — predložićemo ti plesnu školu ili trenera u Beogradu koji ti odgovara.",
-               ru:"Ответь на 8 коротких вопросов — мы подберём танцевальную школу или тренера в Белграде, который тебе подходит."},
-  time2min:   {sr:"2 minuta", ru:"2 минуты"},
-  free:       {sr:"Besplatno", ru:"Бесплатно"},
-  start:      {sr:"Počni", ru:"Начать"},
-  next:       {sr:"Dalje", ru:"Далее"},
-  send:       {sr:"Pošalji", ru:"Отправить"},
-  sending:    {sr:"Šaljem…", ru:"Отправляем…"},
-  skip:       {sr:"Preskoči", ru:"Пропустить"},
-  step:       {sr:"Pitanje", ru:"Вопрос"},
-  of:         {sr:"od", ru:"из"},
-  multiHint:  {sr:"Možeš izabrati više odgovora", ru:"Можно выбрать несколько вариантов"},
-  contactT:   {sr:"Skoro gotovo!", ru:"Почти готово!"},
-  contactS:   {sr:"Kako da ti pošaljemo preporuku?", ru:"Как отправить тебе рекомендацию?"},
-  name:       {sr:"Ime", ru:"Имя"},
-  namePh:     {sr:"Tvoje ime", ru:"Твоё имя"},
-  ig:         {sr:"Instagram", ru:"Instagram"},
-  igPh:       {sr:"korisnicko_ime", ru:"имя_пользователя"},
-  email:      {sr:"Email", ru:"Email"},
-  phone:      {sr:"Telefon", ru:"Телефон"},
-  optional:   {sr:"opciono", ru:"необязательно"},
-  otherPh:    {sr:"Napiši koji ples", ru:"Напиши, какой танец"},
+               ru:"Ответь на 8 коротких вопросов — мы подберём танцевальную школу или тренера в Белграде, который тебе подходит.",
+               en:"Answer 8 short questions — we will suggest a dance school or teacher in Belgrade that fits you."},
+  time2min:   {sr:"2 minuta", ru:"2 минуты", en:"2 minutes"},
+  free:       {sr:"Besplatno", ru:"Бесплатно", en:"Free"},
+  start:      {sr:"Počni", ru:"Начать", en:"Start"},
+  next:       {sr:"Dalje", ru:"Далее", en:"Next"},
+  send:       {sr:"Pošalji", ru:"Отправить", en:"Send"},
+  sending:    {sr:"Šaljem…", ru:"Отправляем…", en:"Sending…"},
+  skip:       {sr:"Preskoči", ru:"Пропустить", en:"Skip"},
+  step:       {sr:"Pitanje", ru:"Вопрос", en:"Question"},
+  of:         {sr:"od", ru:"из", en:"of"},
+  multiHint:  {sr:"Možeš izabrati više odgovora", ru:"Можно выбрать несколько вариантов", en:"You can pick more than one"},
+  contactT:   {sr:"Skoro gotovo!", ru:"Почти готово!", en:"Almost done!"},
+  contactS:   {sr:"Kako da ti pošaljemo preporuku?", ru:"Как отправить тебе рекомендацию?", en:"Where should we send your recommendation?"},
+  name:       {sr:"Ime", ru:"Имя", en:"Name"},
+  namePh:     {sr:"Tvoje ime", ru:"Твоё имя", en:"Your name"},
+  ig:         {sr:"Instagram", ru:"Instagram", en:"Instagram"},
+  igPh:       {sr:"korisnicko_ime", ru:"имя_пользователя", en:"username"},
+  email:      {sr:"Email", ru:"Email", en:"Email"},
+  phone:      {sr:"Telefon", ru:"Телефон", en:"Phone"},
+  optional:   {sr:"opciono", ru:"необязательно", en:"optional"},
+  emailPh:    {sr:"ime@mail.com", ru:"email@mail.com", en:"name@mail.com"},
+  otherPh:    {sr:"Napiši koji ples", ru:"Напиши, какой танец", en:"Tell us which dance"},
   legal:      {sr:"Podatke koristimo samo da ti pošaljemo preporuku. Ne delimo ih ni sa kim trećim.",
-               ru:"Данные используем только для того, чтобы отправить тебе рекомендацию. Никому не передаём."},
-  errSend:    {sr:"Slanje nije uspelo. Proveri internet i pokušaj ponovo.", ru:"Не удалось отправить. Проверь интернет и попробуй ещё раз."},
-  retry:      {sr:"Pokušaj ponovo", ru:"Попробовать снова"},
-  thanksT:    {sr:"Hvala!", ru:"Hvala! (Спасибо!)"},
+               ru:"Данные используем только для того, чтобы отправить тебе рекомендацию. Никому не передаём.",
+               en:"We use your details only to send you a recommendation. We never share them."},
+  errSend:    {sr:"Slanje nije uspelo. Proveri internet i pokušaj ponovo.",
+               ru:"Не удалось отправить. Проверь интернет и попробуй ещё раз.",
+               en:"Sending failed. Check your connection and try again."},
+  retry:      {sr:"Pokušaj ponovo", ru:"Попробовать снова", en:"Try again"},
+  thanksT:    {sr:"Hvala!", ru:"Hvala! (Спасибо!)", en:"Hvala! (Thank you!)"},
   thanksS:    {sr:"Pregledaćemo vaše odgovore i pomoći vam da pronađete odgovarajuću školu ili trenera.",
-               ru:"Мы посмотрим твои ответы и поможем найти подходящую школу или тренера."},
-  thanksWhen: {sr:"Javljamo se u roku od 24–48h na Instagram.", ru:"Ответим в течение 24–48 часов в Instagram."},
-  igBtn:      {sr:"Zaprati nas na Instagramu", ru:"Подпишись на нас в Instagram"}
+               ru:"Мы посмотрим твои ответы и поможем найти подходящую школу или тренера.",
+               en:"We will go through your answers and help you find the right school or teacher."},
+  thanksWhen: {sr:"Javljamo se u roku od 24–48h na Instagram.",
+               ru:"Ответим в течение 24–48 часов в Instagram.",
+               en:"We will get back to you on Instagram within 24–48h."},
+  igBtn:      {sr:"Zaprati nas na Instagramu", ru:"Подпишись на нас в Instagram", en:"Follow us on Instagram"}
 };
 const t = k => (T[k] && (T[k][lang] || T[k].sr)) || "";
 const L = o => (o && (o[lang] || o.sr)) || "";
 
 /* ---------------- pitanja ---------------- */
-const O = (sr, ru, extra) => Object.assign({sr, ru}, extra || {});
+const O = (sr, ru, en, extra) => Object.assign({sr, ru, en}, extra || {});
 const QUESTIONS = [
   {
     key:"direction", col:"Direction", multi:false,
-    title:{sr:"Koji ples te zanima?", ru:"Какое направление тебя интересует?"},
+    title:{sr:"Koji ples te zanima?", ru:"Какое направление тебя интересует?", en:"Which dance are you interested in?"},
     options:[
-      O("Latino (Latin)","Латина (Latin)"),
-      O("Standard","Стандарт (Standard)"),
-      O("Salsa / Bachata","Сальса / Бачата"),
-      O("Argentinski tango","Аргентинское танго"),
-      O("Drugo","Другое",{other:true}),
-      O("Ne znam / želim preporuku","Не знаю / хочу рекомендацию")
+      O("Latino (Latin)","Латина (Latin)","Latin"),
+      O("Standard","Стандарт (Standard)","Standard (Ballroom)"),
+      O("Salsa / Bachata","Сальса / Бачата","Salsa / Bachata"),
+      O("Argentinski tango","Аргентинское танго","Argentine tango"),
+      O("Drugo","Другое","Other",{other:true}),
+      O("Ne znam / želim preporuku","Не знаю / хочу рекомендацию","Not sure / suggest something")
     ]
   },
   {
     key:"format", col:"Format", multi:false,
-    title:{sr:"Individualni ili grupni časovi?", ru:"Индивидуальные или групповые занятия?"},
+    title:{sr:"Individualni ili grupni časovi?", ru:"Индивидуальные или групповые занятия?", en:"Private or group classes?"},
     options:[
-      O("Individualni","Индивидуальные"),
-      O("Grupni","Групповые"),
-      O("Oboje","И то, и другое"),
-      O("Ne znam","Не знаю")
+      O("Individualni","Индивидуальные","Private"),
+      O("Grupni","Групповые","Group"),
+      O("Oboje","И то, и другое","Both"),
+      O("Ne znam","Не знаю","Not sure")
     ]
   },
   {
     key:"level", col:"Level", multi:false,
-    title:{sr:"Tvoj nivo?", ru:"Твой уровень?"},
+    title:{sr:"Tvoj nivo?", ru:"Твой уровень?", en:"Your level?"},
     options:[
-      O("Početnik","Начинающий"),
-      O("Malo iskustva","Немного опыта"),
-      O("Iskusan plesač","Опытный танцор"),
-      O("Takmičar / želim da se takmičim","Соревнуюсь / хочу соревноваться")
+      O("Početnik","Начинающий","Beginner"),
+      O("Malo iskustva","Немного опыта","Some experience"),
+      O("Iskusan plesač","Опытный танцор","Experienced dancer"),
+      O("Takmičar / želim da se takmičim","Соревнуюсь / хочу соревноваться","Competitor / want to compete")
     ]
   },
   {
     key:"goal", col:"Goal", multi:true,
-    title:{sr:"Šta ti je cilj?", ru:"Какая у тебя цель?"},
+    title:{sr:"Šta ti je cilj?", ru:"Какая у тебя цель?", en:"What is your goal?"},
     options:[
-      O("Hobi","Хобби"),
-      O("Samopouzdanje / izražavanje","Уверенность / самовыражение"),
-      O("Druženje","Общение"),
-      O("Fizička aktivnost","Физическая активность"),
-      O("Nastupi","Выступления"),
-      O("Takmičenja","Соревнования"),
-      O("Razvoj plesnih veština","Развитие танцевальных навыков")
+      O("Hobi","Хобби","Hobby"),
+      O("Samopouzdanje / izražavanje","Уверенность / самовыражение","Confidence / self-expression"),
+      O("Druženje","Общение","Meeting people"),
+      O("Fizička aktivnost","Физическая активность","Physical activity"),
+      O("Nastupi","Выступления","Performing"),
+      O("Takmičenja","Соревнования","Competitions"),
+      O("Razvoj plesnih veština","Развитие танцевальных навыков","Improving dance skills")
     ]
   },
   {
     key:"location", col:"Location", multi:true,
-    title:{sr:"Koji deo Beograda ti odgovara?", ru:"Какой район Белграда тебе удобен?"},
+    title:{sr:"Koji deo Beograda ti odgovara?", ru:"Какой район Белграда тебе удобен?", en:"Which part of Belgrade suits you?"},
     options:[
-      O("Stari grad","Стари град"),
-      O("Vračar","Врачар"),
-      O("Savski venac","Савски венац"),
-      O("Novi Beograd","Нови Београд"),
-      O("Zemun","Земун"),
-      O("Voždovac","Вождовац"),
-      O("Zvezdara","Звездара"),
-      O("Palilula","Палилула"),
-      O("Čukarica","Чукарица"),
-      O("Rakovica","Раковица"),
-      O("Lokacija mi nije važna","Локация не важна",{exclusive:true})
+      O("Stari grad","Стари град","Stari grad"),
+      O("Vračar","Врачар","Vračar"),
+      O("Savski venac","Савски венац","Savski venac"),
+      O("Novi Beograd","Нови Београд","Novi Beograd"),
+      O("Zemun","Земун","Zemun"),
+      O("Voždovac","Вождовац","Voždovac"),
+      O("Zvezdara","Звездара","Zvezdara"),
+      O("Palilula","Палилула","Palilula"),
+      O("Čukarica","Чукарица","Čukarica"),
+      O("Rakovica","Раковица","Rakovica"),
+      O("Lokacija mi nije važna","Локация не важна","Location does not matter",{exclusive:true})
     ]
   },
   {
     key:"time", col:"Time", multi:true,
-    title:{sr:"Kada ti odgovara da treniraš?", ru:"Когда тебе удобно заниматься?"},
+    title:{sr:"Kada ti odgovara da treniraš?", ru:"Когда тебе удобно заниматься?", en:"When can you train?"},
     options:[
-      O("Jutro","Утро"),
-      O("Dan","День"),
-      O("Veče","Вечер"),
-      O("Vikend","Выходные"),
-      O("Fleksibilan/na sam","Гибкий график",{exclusive:true})
+      O("Jutro","Утро","Morning"),
+      O("Dan","День","Daytime"),
+      O("Veče","Вечер","Evening"),
+      O("Vikend","Выходные","Weekend"),
+      O("Fleksibilan/na sam","Гибкий график","I am flexible",{exclusive:true})
     ]
   },
   {
     key:"frequency", col:"Frequency", multi:false,
-    title:{sr:"Koliko često želiš da treniraš?", ru:"Как часто хочешь заниматься?"},
+    title:{sr:"Koliko često želiš da treniraš?", ru:"Как часто хочешь заниматься?", en:"How often do you want to train?"},
     options:[
-      O("1x nedeljno","1 раз в неделю"),
-      O("2x nedeljno","2 раза в неделю"),
-      O("3x+ nedeljno","3+ раза в неделю"),
-      O("Po dogovoru","По договорённости")
+      O("1x nedeljno","1 раз в неделю","Once a week"),
+      O("2x nedeljno","2 раза в неделю","Twice a week"),
+      O("3x+ nedeljno","3+ раза в неделю","3+ times a week"),
+      O("Po dogovoru","По договорённости","To be agreed")
     ]
   },
   {
     key:"priorities", col:"Priorities", multi:true,
-    title:{sr:"Šta ti je najvažnije pri izboru?", ru:"Что для тебя важнее всего при выборе?"},
+    title:{sr:"Šta ti je najvažnije pri izboru?", ru:"Что для тебя важнее всего при выборе?", en:"What matters most to you?"},
     options:[
-      O("Lokacija","Локация"),
-      O("Cena","Цена"),
-      O("Termin","Расписание"),
-      O("Trener","Тренер"),
-      O("Atmosfera","Атмосфера"),
-      O("Nivo grupe","Уровень группы"),
-      O("Takmičenja / nastupi","Соревнования / выступления")
+      O("Lokacija","Локация","Location"),
+      O("Cena","Цена","Price"),
+      O("Termin","Расписание","Schedule"),
+      O("Trener","Тренер","Teacher"),
+      O("Atmosfera","Атмосфера","Atmosphere"),
+      O("Nivo grupe","Уровень группы","Group level"),
+      O("Takmičenja / nastupi","Соревнования / выступления","Competitions / performances")
     ]
   }
 ];
@@ -341,7 +350,19 @@ const LAST = QUESTIONS.length;      // indeks contact ekrana
 const TOTAL = QUESTIONS.length + 1; // pitanja + kontakt
 
 /* ---------------- state ---------------- */
-let lang = (localStorage.getItem("psp_lang")) || ((navigator.language||"").toLowerCase().startsWith("ru") ? "ru" : "sr");
+let lang = detectLang();
+
+// ?lang=en u linku ima prednost (zgodno za stories na engleskom), pa zapamćen izbor, pa jezik telefona
+function detectLang(){
+  const q = (new URLSearchParams(location.search).get("lang") || "").toLowerCase();
+  if (["sr","ru","en"].indexOf(q) > -1) return q;
+  const saved = localStorage.getItem("psp_lang");
+  if (["sr","ru","en"].indexOf(saved) > -1) return saved;
+  const nav = (navigator.language || "").toLowerCase();
+  if (nav.indexOf("ru") === 0) return "ru";
+  if (nav.indexOf("en") === 0) return "en";
+  return "sr";
+}
 let step = -1;                 // -1 intro, 0..N-1 pitanja, N kontakt, N+1 hvala
 let answers = {};              // key -> string | string[]
 let otherText = "";
@@ -361,7 +382,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">"
 
 /* ---------------- render ---------------- */
 function render(){
-  document.documentElement.lang = lang === "ru" ? "ru" : "sr";
+  document.documentElement.lang = lang;
   document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
 
   const showChrome = step >= 0 && step <= LAST;
@@ -436,7 +457,7 @@ function contactHTML(){
     </div>
     <div class="field">
       <label for="f_email">${esc(t("email"))} <span class="opt-tag">— ${esc(t("optional"))}</span></label>
-      <input type="email" id="f_email" value="${esc(contact.email)}" placeholder="ime@mail.com" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next">
+      <input type="email" id="f_email" value="${esc(contact.email)}" placeholder="${esc(t("emailPh"))}" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next">
     </div>
     <div class="field">
       <label for="f_phone">${esc(t("phone"))} <span class="opt-tag">— ${esc(t("optional"))}</span></label>
@@ -592,7 +613,7 @@ function payload(){
     ig: normIg(contact.ig) ? "@" + normIg(contact.ig) : "",
     email: contact.email.trim(),
     phone: contact.phone.trim(),
-    language: lang === "ru" ? "RU" : "SR",
+    language: lang.toUpperCase(),
     direction: directionValue(),
     format: j("format"),
     level: j("level"),
