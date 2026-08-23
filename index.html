@@ -145,6 +145,7 @@ a.btn{text-decoration:none}
 .btn[disabled]{opacity:.35;cursor:default}
 .btn.ghost{background:transparent;color:var(--ink-2);min-height:46px;font-weight:500;font-size:14px}
 .legal{font-size:12px;color:var(--brown);text-align:center;margin:12px 4px 0;line-height:1.45}
+.hp{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
 .err{background:#F6E2DC;border:1px solid #E0BCB0;color:#7A3B2A;border-radius:12px;padding:12px 14px;font-size:14px;margin:0 0 12px}
 
 /* ---------- intro ---------- */
@@ -193,7 +194,9 @@ const CONFIG = {
   // Apps Script Web App URL (vidi apps-script/Code.gs i README.md)
   ENDPOINT: "https://script.google.com/macros/s/AKfycbxHl9E57ZZby2YjB5xwAqORJ9Ly3pxJP8KOA4KmGOWItwslbEvITT62j__fsnM9s5k/exec",
   // Instagram handle bez @ (ostavi prazno da se dugme ne prikazuje)
-  INSTAGRAM: "proam.dance.rs"
+  INSTAGRAM: "proam.dance.rs",
+  // Mora da bude isto kao TOKEN u apps-script/Code.gs
+  TOKEN: "psp-2026"
 };
 
 /* ---------------- i18n ---------------- */
@@ -344,6 +347,8 @@ let answers = {};              // key -> string | string[]
 let otherText = "";
 let contact = {name:"", ig:"", email:"", phone:""};
 let sending = false, sendError = false;
+let hp = "";                   // honeypot — ostaje prazan kod ljudi
+let startedAt = 0;             // kada je korisnik krenuo sa popunjavanjem
 
 const view = document.getElementById("view");
 const back = document.getElementById("back");
@@ -437,6 +442,10 @@ function contactHTML(){
       <label for="f_phone">${esc(t("phone"))} <span class="opt-tag">— ${esc(t("optional"))}</span></label>
       <input type="tel" id="f_phone" value="${esc(contact.phone)}" placeholder="+381 60 000 0000" enterkeyhint="done">
     </div>
+    <div class="hp" aria-hidden="true">
+      <label for="f_website">Website</label>
+      <input type="text" id="f_website" tabindex="-1" autocomplete="off">
+    </div>
     <p class="legal">${esc(t("legal"))}</p>
     <div class="foot">
       <button class="btn" data-act="send" ${ok && !sending ? "" : "disabled"}>
@@ -474,6 +483,9 @@ function wire(){
   }));
   const ot = view.querySelector("#otherText");
   if (ot) ot.addEventListener("input", e => { otherText = e.target.value; });
+
+  const hpEl = view.querySelector("#f_website");
+  if (hpEl) hpEl.addEventListener("input", e => { hp = e.target.value; });
 
   ["name","ig","email","phone"].forEach(k => {
     const el = view.querySelector("#f_" + k);
@@ -526,6 +538,7 @@ function onOption(btn){
 }
 
 function go(n){
+  if (n === 0 && !startedAt) startedAt = Date.now();
   step = Math.max(-1, Math.min(LAST + 1, n));
   saveDraft();
   render();
@@ -544,13 +557,14 @@ window.addEventListener("scroll", () => hdr.classList.toggle("scrolled", window.
 
 /* ---------------- draft (da se ne izgubi kod slučajnog reload-a) ---------------- */
 function saveDraft(){
-  try { localStorage.setItem("psp_draft", JSON.stringify({step, answers, otherText, contact, ts:Date.now()})); } catch(e){}
+  try { localStorage.setItem("psp_draft", JSON.stringify({step, answers, otherText, contact, startedAt, ts:Date.now()})); } catch(e){}
 }
 (function loadDraft(){
   try {
     const d = JSON.parse(localStorage.getItem("psp_draft") || "null");
     if (d && Date.now() - d.ts < 36e5 && d.step > -1 && d.step <= LAST){
       answers = d.answers || {}; otherText = d.otherText || ""; contact = d.contact || contact;
+      startedAt = d.startedAt || 0;
     }
   } catch(e){}
 })();
@@ -587,7 +601,10 @@ function payload(){
     time: j("time"),
     frequency: j("frequency"),
     priorities: j("priorities"),
-    source: (new URLSearchParams(location.search).get("src") || "instagram")
+    source: (new URLSearchParams(location.search).get("src") || "instagram"),
+    token: CONFIG.TOKEN,
+    hp: hp,                                                    // popunjeno = bot
+    elapsed: startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0
   };
 }
 

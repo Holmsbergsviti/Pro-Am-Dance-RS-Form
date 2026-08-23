@@ -25,10 +25,23 @@ var HEADERS = [
 
 var STATUSES = ['New', 'Reviewed', 'Recommendation sent', 'Connected'];
 
+/** Anti-spam. TOKEN mora da bude isti kao CONFIG.TOKEN u index.html. */
+var TOKEN = 'psp-2026';
+var MIN_SECONDS = 6;          // ispod ovoga je bot, ne čovek
+var DEDUP_SECONDS = 600;      // ista prijava dva puta u ovom roku = duplikat
+var BLOCKED_SHEET = 'Blocked';
+
 function doPost(e) {
   try {
     var data = parseBody(e);
     if (!data) return json({ ok: false, error: 'empty body' });
+
+    // spam se ne upisuje u Leads, ali se loguje u Blocked (da se vidi ako nešto pogrešno odbijemo)
+    var blocked = spamReason(data);
+    if (blocked) {
+      logBlocked(data, blocked);
+      return json({ ok: true });     // botu ne govorimo šta ga je odalo
+    }
 
     var sheet = getSheet();
     var tz = Session.getScriptTimeZone() || 'Europe/Belgrade';
@@ -78,6 +91,47 @@ function parseBody(e) {
   // 3) obična form polja
   if (e.parameter && e.parameter.name) return e.parameter;
   return null;
+}
+
+/** Vraća razlog blokiranja ili '' ako je prijava u redu. */
+function spamReason(data) {
+  if (str(data.hp)) return 'honeypot';
+  if (str(data.token) !== TOKEN) return 'bad token';
+
+  var el = Number(data.elapsed || 0);
+  if (!el || el < MIN_SECONDS) return 'too fast (' + el + 's)';
+
+  var cache = CacheService.getScriptCache();
+  var key = 'psp_' + Utilities.base64Encode(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.MD5,
+      [str(data.name), str(data.ig), str(data.direction), str(data.goal), str(data.location)].join('|'))
+  );
+  if (cache.get(key)) return 'duplicate';
+  cache.put(key, '1', DEDUP_SECONDS);
+
+  return '';
+}
+
+function logBlocked(data, reason) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(BLOCKED_SHEET);
+    if (!sh) {
+      sh = ss.insertSheet(BLOCKED_SHEET);
+      sh.getRange(1, 1, 1, 4).setValues([['Date', 'Reason', 'Name / IG', 'Raw']])
+        .setFontWeight('bold').setBackground('#7A6156').setFontColor('#F1E9E1');
+      sh.setFrozenRows(1);
+      sh.setColumnWidth(1, 130); sh.setColumnWidth(2, 140);
+      sh.setColumnWidth(3, 220); sh.setColumnWidth(4, 520);
+    }
+    var tz = Session.getScriptTimeZone() || 'Europe/Belgrade';
+    sh.appendRow([
+      Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm'),
+      reason,
+      str(data.name) + ' ' + str(data.ig),
+      JSON.stringify(data).slice(0, 500)
+    ]);
+  } catch (ignore) {}
 }
 
 function str(v) {
