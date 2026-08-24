@@ -19,7 +19,12 @@ var NOTIFY_EMAIL = '';
 /** Telegram obaveštenja. Kako se dobija token i chat id — vidi README, sekcija Telegram.
  *  Ostavi prazno ako ne koristiš Telegram. */
 var TELEGRAM_TOKEN = '';      // npr. '7812345678:AAH...'
-var TELEGRAM_CHAT  = '';      // npr. '123456789' (lični chat) ili '-1002345678901' (grupa)
+/** Jedan ili više primalaca, odvojeni zarezom:
+ *  '123456789'                  — jedna osoba
+ *  '123456789, 987654321'       — dve osobe, svaka dobija svoju poruku
+ *  '-1002345678901'             — grupa (svi u njoj vide prijave)
+ *  Svaki primalac mora prvo sam da napiše botu, inače Telegram ne dozvoljava slanje. */
+var TELEGRAM_CHAT  = '';
 
 /** Jezik tabele: 'sr' (Datum, Ime, Ples…) ili 'en' (Date, Name, Direction…). */
 var SHEET_LANG = 'sr';
@@ -31,6 +36,9 @@ var DEDUP_SECONDS = 600;      // ista prijava dvaput u ovom roku = duplikat
 
 var SHEET_NAME = 'Prijave';
 var BLOCKED_SHEET = 'Blokirano';
+var STATS_SHEET = 'Statistika';      // sirovi događaji
+var DASH_SHEET = 'Pregled';          // sažetak sa grafikonima
+var DASH_DAYS = 30;                  // koliko dana ulazi u pregled
 
 /* ============ STRUKTURA TABELE ============ */
 
@@ -63,6 +71,9 @@ function doPost(e) {
   try {
     var data = parseBody(e);
     if (!data) return json({ ok: false, error: 'empty body' });
+
+    // statistika poseta — ne ide u Prijave
+    if (data.kind === 'event') { logEvent(data); return json({ ok: true }); }
 
     // spam ne ide u glavnu tabelu, ali se pamti u "Blokirano" — da se vidi ako nekog pogrešno odbijemo
     var blocked = spamReason(data);
@@ -255,12 +266,19 @@ function notifyTelegram(data) {
     if (handle) dugmad.push({ text: '📷 Instagram', url: 'https://instagram.com/' + handle });
     dugmad.push({ text: '📋 Tabela', url: SpreadsheetApp.getActiveSpreadsheet().getUrl() });
 
-    telegramCall('sendMessage', {
-      chat_id: TELEGRAM_CHAT,
-      text: text,
-      parse_mode: 'HTML',
-      disable_web_page_preview: true,
-      reply_markup: { inline_keyboard: [dugmad] }
+    // svakom primaocu posebno — greška kod jednog ne sme da zaustavi ostale
+    TELEGRAM_CHAT.split(',').forEach(function (chat) {
+      var id = chat.trim();
+      if (!id) return;
+      try {
+        telegramCall('sendMessage', {
+          chat_id: id,
+          text: text,
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+          reply_markup: { inline_keyboard: [dugmad] }
+        });
+      } catch (ignore) {}
     });
   } catch (ignore) {}
 }
@@ -289,13 +307,180 @@ function telegramChatId() {
   });
 }
 
-/** KORAK 2: provera da poruka stvarno stiže. */
+/** KORAK 2: provera da poruka stvarno stiže — svim primaocima iz TELEGRAM_CHAT. */
 function testTelegram() {
+  Logger.log('Šaljem na: ' + TELEGRAM_CHAT);
   notifyTelegram({
     name: 'PROBA', ig: '@proba', phone: '060 111 2233', language: 'SR', source: 'test',
     direction: 'Salsa / Bachata', format: 'Grupni', level: 'Početnik',
     goal: 'Hobi', location: 'Vračar', time: 'Veče', frequency: '2x nedeljno', priorities: 'Trener'
   });
+}
+
+/* ============ STATISTIKA ============ */
+
+/** Događaji: view (otvorio stranicu), start (kliknuo Počni),
+ *  exit (otišao — beležimo do kog je pitanja stigao), submit (poslao prijavu). */
+function logEvent(data) {
+  if (str(data.token) !== TOKEN) return;
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(STATS_SHEET) || createStatsSheet(ss);
+    var d = new Date();
+    sh.appendRow([
+      d,
+      Number(Utilities.formatDate(d, tz(), 'H')),
+      str(data.session),
+      str(data.event),
+      data.step === '' || data.step === undefined ? '' : Number(data.step),
+      str(data.language),
+      str(data.source)
+    ]);
+  } catch (ignore) {}
+}
+
+function createStatsSheet(ss) {
+  var sh = ss.insertSheet(STATS_SHEET);
+  sh.getRange(1, 1, 1, 7).setValues([['Vreme', 'Sat', 'Sesija', 'Događaj', 'Korak', 'Jezik', 'Odakle']])
+    .setFontWeight('bold').setBackground('#7A6156').setFontColor('#F2EAE0');
+  sh.setFrozenRows(1);
+  sh.getRange('A2:A').setNumberFormat('dd.MM.yyyy HH:mm');
+  [140, 50, 90, 90, 60, 60, 110].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  return sh;
+}
+
+/** Prepravlja list "Pregled". Pokreće se sam na sat vremena (vidi ukljuciStatistiku),
+ *  a može i ručno kad god zatreba svež broj. */
+function osveziPregled() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var st = ss.getSheetByName(STATS_SHEET);
+  if (!st || st.getLastRow() < 2) return;
+
+  var rows = st.getRange(2, 1, st.getLastRow() - 1, 7).getValues();
+  var granica = new Date();
+  granica.setDate(granica.getDate() - DASH_DAYS);
+
+  var poDanu = {}, poSatu = {}, sesije = {}, izvori = {};
+  for (var h = 0; h < 24; h++) poSatu[h] = {};
+
+  rows.forEach(function (r) {
+    var d = r[0];
+    if (!(d instanceof Date) || d < granica) return;
+    var dan = Utilities.formatDate(d, tz(), 'dd.MM.yyyy');
+    var sesija = r[2], dogadjaj = r[3], korak = r[4];
+
+    if (!sesije[sesija]) sesije[sesija] = { dan: dan, sat: r[1], poceo: false, zavrsio: false, korak: -1, izvor: r[6] };
+    var s = sesije[sesija];
+    if (dogadjaj === 'start')  s.poceo = true;
+    if (dogadjaj === 'submit') { s.zavrsio = true; s.korak = 99; }
+    if (korak !== '' && Number(korak) > s.korak) s.korak = Number(korak);
+
+    poDanu[dan] = poDanu[dan] || { posete: {}, zavrseno: 0 };
+    poSatu[r[1]] = poSatu[r[1]] || {};
+  });
+
+  var ukupno = 0, poceli = 0, zavrsili = 0, doKoraka = [];
+  for (var i = 0; i <= 9; i++) doKoraka[i] = 0;
+
+  Object.keys(sesije).forEach(function (k) {
+    var s = sesije[k];
+    ukupno++;
+    if (s.poceo) poceli++;
+    if (s.zavrsio) zavrsili++;
+    poDanu[s.dan].posete[k] = 1;
+    if (s.zavrsio) poDanu[s.dan].zavrseno++;
+    poSatu[s.sat][k] = 1;
+    izvori[s.izvor || '—'] = (izvori[s.izvor || '—'] || 0) + 1;
+    for (var i = 0; i <= 9; i++) if (s.korak >= i) doKoraka[i]++;
+  });
+
+  /* --- crtanje lista --- */
+  var sh = ss.getSheetByName(DASH_SHEET) || ss.insertSheet(DASH_SHEET);
+  sh.clear();
+  sh.getCharts().forEach(function (c) { sh.removeChart(c); });
+
+  sh.getRange('A1').setValue('Pregled — Pronađi svoj ples')
+    .setFontSize(16).setFontWeight('bold').setFontColor('#3B2D28');
+  sh.getRange('A2').setValue('Poslednjih ' + DASH_DAYS + ' dana · osveženo ' + now())
+    .setFontColor('#7A6156').setFontSize(10);
+
+  var konverzija = ukupno ? Math.round(zavrsili / ukupno * 100) : 0;
+  sh.getRange('A4:D4').setValues([['Otvorilo stranicu', 'Počelo da popunjava', 'Poslalo prijavu', 'Konverzija']])
+    .setFontWeight('bold').setBackground('#3B2D28').setFontColor('#F2EAE0');
+  sh.getRange('A5:D5').setValues([[ukupno, poceli, zavrsili, konverzija + '%']])
+    .setFontSize(20).setFontColor('#3B2D28');
+
+  // po danima
+  var dani = Object.keys(poDanu).sort(function (a, b) { return kljucDana(a) - kljucDana(b); });
+  sh.getRange('A7').setValue('Po danima').setFontWeight('bold');
+  sh.getRange('A8:C8').setValues([['Datum', 'Posetilaca', 'Poslato']])
+    .setFontWeight('bold').setBackground('#DCCFC3');
+  if (dani.length) {
+    sh.getRange(9, 1, dani.length, 3).setValues(dani.map(function (d) {
+      return [d, Object.keys(poDanu[d].posete).length, poDanu[d].zavrseno];
+    }));
+  }
+
+  // po satima
+  sh.getRange('E7').setValue('Po satima (kada dolaze)').setFontWeight('bold');
+  sh.getRange('E8:F8').setValues([['Sat', 'Posetilaca']])
+    .setFontWeight('bold').setBackground('#DCCFC3');
+  var satRedovi = [];
+  for (var h2 = 0; h2 < 24; h2++) satRedovi.push([h2 + ':00', Object.keys(poSatu[h2] || {}).length]);
+  sh.getRange(9, 5, 24, 2).setValues(satRedovi);
+
+  // levak
+  var pitanja = ['Otvorili', 'Počeli'].concat(
+    ['1. ples', '2. format', '3. nivo', '4. cilj', '5. deo grada', '6. termin', '7. koliko često', '8. najvažnije', '9. kontakt']);
+  sh.getRange('H7').setValue('Dokle stižu').setFontWeight('bold');
+  sh.getRange('H8:I8').setValues([['Korak', 'Ljudi']])
+    .setFontWeight('bold').setBackground('#DCCFC3');
+  var levak = [[pitanja[0], ukupno], [pitanja[1], poceli]];
+  for (var i2 = 0; i2 <= 8; i2++) levak.push([pitanja[i2 + 2], doKoraka[i2]]);
+  sh.getRange(9, 8, levak.length, 2).setValues(levak);
+
+  // odakle dolaze
+  var izvorKljuc = Object.keys(izvori).sort(function (a, b) { return izvori[b] - izvori[a]; });
+  sh.getRange('K7').setValue('Odakle dolaze').setFontWeight('bold');
+  sh.getRange('K8:L8').setValues([['Izvor', 'Posetilaca']])
+    .setFontWeight('bold').setBackground('#DCCFC3');
+  if (izvorKljuc.length) {
+    sh.getRange(9, 11, izvorKljuc.length, 2).setValues(izvorKljuc.map(function (k) { return [k, izvori[k]]; }));
+  }
+
+  [110, 100, 90, 30, 80, 100, 30, 130, 80, 30, 120, 100].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+
+  // grafikoni
+  if (dani.length) {
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN)
+      .addRange(sh.getRange(8, 1, dani.length + 1, 3))
+      .setOption('title', 'Posete i prijave po danima')
+      .setOption('colors', ['#7A6156', '#3B2D28'])
+      .setOption('legend', { position: 'bottom' })
+      .setPosition(Math.max(11, dani.length + 12), 1, 0, 0).setNumHeaders(1).build());
+  }
+  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN)
+    .addRange(sh.getRange(8, 5, 25, 2))
+    .setOption('title', 'Posete po satima')
+    .setOption('colors', ['#7A6156'])
+    .setOption('legend', { position: 'none' })
+    .setPosition(Math.max(11, dani.length + 12), 6, 0, 0).setNumHeaders(1).build());
+
+  ss.setActiveSheet(sh);
+}
+
+function kljucDana(s) {
+  var d = s.split('.');
+  return new Date(Number(d[2]), Number(d[1]) - 1, Number(d[0])).getTime();
+}
+
+/** Pokreni jednom: pregled se od tada osvežava sam, na svaki sat. */
+function ukljuciStatistiku() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'osveziPregled') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('osveziPregled').timeBased().everyHours(1).create();
+  osveziPregled();
 }
 
 /* ============ POMOĆNE ============ */
@@ -305,9 +490,12 @@ function str(v) {
   return String(v).slice(0, 500);
 }
 
+function tz() {
+  return Session.getScriptTimeZone() || 'Europe/Belgrade';
+}
+
 function now() {
-  var tz = Session.getScriptTimeZone() || 'Europe/Belgrade';
-  return Utilities.formatDate(new Date(), tz, 'dd.MM.yyyy HH:mm');
+  return Utilities.formatDate(new Date(), tz(), 'dd.MM.yyyy HH:mm');
 }
 
 function json(obj) {

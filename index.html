@@ -369,6 +369,7 @@ let otherText = "";
 let contact = {name:"", ig:"", email:"", phone:""};
 let sending = false, sendError = false;
 let hp = "";                   // honeypot — ostaje prazan kod ljudi
+let maxStep = -1;              // najdalje dokle je korisnik stigao (za statistiku)
 let startedAt = 0;             // kada je korisnik krenuo sa popunjavanjem
 
 const view = document.getElementById("view");
@@ -559,8 +560,9 @@ function onOption(btn){
 }
 
 function go(n){
-  if (n === 0 && !startedAt) startedAt = Date.now();
+  if (n === 0 && !startedAt) { startedAt = Date.now(); track("start"); }
   step = Math.max(-1, Math.min(LAST + 1, n));
+  if (step > maxStep && step <= LAST) maxStep = step;
   saveDraft();
   render();
   if (step >= 0 && step <= LAST) history.pushState({step}, "");
@@ -589,6 +591,49 @@ function saveDraft(){
     }
   } catch(e){}
 })();
+
+/* ---------------- statistika (anonimno) ----------------
+   Šaljemo samo: šta se desilo, kada, na kom koraku, koji jezik i odakle je link.
+   Nema imena, nema IP adrese, nema kolačića — nasumičan broj koji živi
+   dok je tab otvoren i nestaje kad se zatvori. */
+
+const SESSION = (function () {
+  try {
+    var v = sessionStorage.getItem("psp_sid");
+    if (!v) { v = Math.random().toString(36).slice(2, 10); sessionStorage.setItem("psp_sid", v); }
+    return v;
+  } catch (e) { return Math.random().toString(36).slice(2, 10); }
+})();
+
+const SRC = new URLSearchParams(location.search).get("src") || "instagram";
+
+function track(event, korak){
+  if (!CONFIG.ENDPOINT) return;
+  const body = JSON.stringify({
+    kind: "event", token: CONFIG.TOKEN, session: SESSION,
+    event: event, step: (korak === undefined ? "" : korak),
+    language: lang.toUpperCase(), source: SRC
+  });
+  try {
+    // sendBeacon prolazi i kad se stranica zatvara; fetch je rezerva
+    if (navigator.sendBeacon &&
+        navigator.sendBeacon(CONFIG.ENDPOINT, new Blob([body], {type:"text/plain;charset=utf-8"}))) return;
+    fetch(CONFIG.ENDPOINT, {method:"POST", mode:"no-cors", keepalive:true,
+      headers:{"Content-Type":"text/plain;charset=utf-8"}, body:body});
+  } catch (e){}
+}
+
+// jedan "odlazak" po sesiji — govori nam do kog pitanja su ljudi stigli pre nego što odustanu
+let exitSent = false;
+function trackExit(){
+  if (exitSent) return;
+  exitSent = true;
+  track("exit", maxStep);
+}
+window.addEventListener("pagehide", trackExit);
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState === "hidden") trackExit();
+});
 
 /* ---------------- slanje ---------------- */
 // "@ana", "instagram.com/ana/", "https://www.instagram.com/ana?igsh=..." → "ana"
@@ -679,12 +724,15 @@ function postViaForm(body){
 
 function finish(){
   sending = false;
+  exitSent = true;                 // poslato je "submit", "exit" više nije potreban
+  track("submit", LAST);
   try { localStorage.removeItem("psp_draft"); } catch(e){}
   step = LAST + 1;
   render();
 }
 
 render();
+track("view");
 </script>
 </body>
 </html>
