@@ -91,7 +91,9 @@ function doPost(e) {
       str(data.source), statuses()[0], ''
     ]);
 
-    linkifyInstagram(sheet, sheet.getLastRow(), str(data.ig));
+    var red = sheet.getLastRow();
+    linkifyInstagram(sheet, red, str(data.ig));
+    upisiTelefon(sheet, red, str(data.phone));
     notify(data);            // mejl
     notifyTelegram(data);    // Telegram
     return json({ ok: true });
@@ -129,6 +131,44 @@ function linkifyInstagram(sheet, row, handle) {
         .build()
     );
   } catch (ignore) {}
+}
+
+/** Telefon mora u ćeliju kao tekst — inače Sheets od "0603506868" napravi broj
+ *  i pojede nulu, a od "+381..." pojede plus. Format se postavlja pre upisa. */
+function upisiTelefon(sheet, row, phone) {
+  if (!phone) return;
+  try {
+    var c = sheet.getRange(row, col('phone'));
+    c.setNumberFormat('@');
+    c.setValue(phone);
+  } catch (ignore) {}
+}
+
+/** Jednokratno: popravlja telefone koji su ranije upisani kao brojevi.
+ *  381... → +381...,  devetocifreni → 0...  Sve promene ispisuje u Execution log. */
+function popraviTelefone() {
+  var sheet = getSheet();
+  var last = sheet.getLastRow();
+  if (last < 2) return;
+
+  var range = sheet.getRange(2, col('phone'), last - 1, 1);
+  var v = range.getValues();
+  var promene = 0;
+
+  for (var i = 0; i < v.length; i++) {
+    var x = v[i][0];
+    if (x === '' || x === null) continue;
+    if (typeof x !== 'number') { v[i][0] = String(x); continue; }
+    var t = String(x), novo = t;
+    if (t.indexOf('381') === 0) novo = '+' + t;
+    else if (t.length === 8 || t.length === 9) novo = '0' + t;
+    if (novo !== t) promene++;
+    Logger.log('red ' + (i + 2) + ': ' + t + '  →  ' + novo);
+    v[i][0] = novo;
+  }
+  range.setNumberFormat('@');
+  range.setValues(v);
+  Logger.log('Popravljeno: ' + promene);
 }
 
 /* ============ ANTI-SPAM ============ */
@@ -369,9 +409,13 @@ function osveziPregled() {
     var dan = Utilities.formatDate(d, tz(), 'dd.MM.yyyy');
     var sesija = r[2], dogadjaj = r[3], korak = r[4];
 
-    if (!sesije[sesija]) sesije[sesija] = { dan: dan, sat: r[1], poceo: false, zavrsio: false, korak: -1, izvor: r[6] };
+    if (!sesije[sesija]) sesije[sesija] = { dan: dan, sat: r[1], poceo: false, zavrsio: false,
+                                            kucao: false, spreman: false, greska: false, korak: -1, izvor: r[6] };
     var s = sesije[sesija];
     if (dogadjaj === 'start')  s.poceo = true;
+    if (dogadjaj === 'contact_typing') s.kucao = true;
+    if (dogadjaj === 'contact_ready')  s.spreman = true;
+    if (dogadjaj === 'send_fail')      s.greska = true;
     if (dogadjaj === 'submit') { s.zavrsio = true; s.korak = 99; }
     if (korak !== '' && Number(korak) > s.korak) s.korak = Number(korak);
 
@@ -432,11 +476,22 @@ function osveziPregled() {
   // levak
   var pitanja = ['Otvorili', 'Počeli'].concat(
     ['1. ples', '2. format', '3. nivo', '4. cilj', '5. deo grada', '6. termin', '7. koliko često', '8. najvažnije', '9. kontakt']);
+  // šta se dešava na poslednjem ekranu — gde tačno pucaju
+  var kucalo = 0, spremno = 0, greske = 0;
+  Object.keys(sesije).forEach(function (k) {
+    if (sesije[k].kucao) kucalo++;
+    if (sesije[k].spreman) spremno++;
+    if (sesije[k].greska) greske++;
+  });
   sh.getRange('H7').setValue('Dokle stižu').setFontWeight('bold');
   sh.getRange('H8:I8').setValues([['Korak', 'Ljudi']])
     .setFontWeight('bold').setBackground('#DCCFC3');
   var levak = [[pitanja[0], ukupno], [pitanja[1], poceli]];
   for (var i2 = 0; i2 <= 8; i2++) levak.push([pitanja[i2 + 2], doKoraka[i2]]);
+  levak.push(['↳ počeli da kucaju', kucalo]);
+  levak.push(['↳ popunili ime + IG', spremno]);
+  levak.push(['↳ poslali', zavrsili]);
+  if (greske) levak.push(['⚠ slanje palo', greske]);
   sh.getRange(9, 8, levak.length, 2).setValues(levak);
 
   // odakle dolaze

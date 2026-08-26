@@ -145,6 +145,7 @@ a.btn{text-decoration:none}
 .btn[disabled]{opacity:.35;cursor:default}
 .btn.ghost{background:transparent;color:var(--ink-2);min-height:46px;font-weight:500;font-size:14px}
 .legal{font-size:12px;color:var(--brown);text-align:center;margin:12px 4px 0;line-height:1.45}
+.fhint{margin:7px 2px 0;font-size:12px;line-height:1.4;color:var(--brown)}
 .hp{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
 .err{background:#F6E2DC;border:1px solid #E0BCB0;color:#7A3B2A;border-radius:12px;padding:12px 14px;font-size:14px;margin:0 0 12px}
 
@@ -226,6 +227,12 @@ const T = {
   phone:      {sr:"Telefon", ru:"Телефон", en:"Phone"},
   optional:   {sr:"opciono", ru:"необязательно", en:"optional"},
   emailPh:    {sr:"ime@mail.com", ru:"email@mail.com", en:"name@mail.com"},
+  igHint:     {sr:"Ovde pišemo odgovor. Nemate Instagram? Ostavite email ili telefon.",
+               ru:"Сюда напишем ответ. Нет Instagram? Оставьте email или телефон.",
+               en:"This is where we reply. No Instagram? Leave an email or phone instead."},
+  igIsMail:   {sr:"To liči na email — prebacili smo ga u polje Email.",
+               ru:"Это похоже на email — перенесли его в поле Email.",
+               en:"That looks like an email — we moved it to the Email field."},
   otherPh:    {sr:"Napišite koji ples", ru:"Напишите, какой танец", en:"Tell us which dance"},
   legal:      {sr:"Podatke koristimo samo da Vam pošaljemo preporuku. Ne delimo ih ni sa kim trećim.",
                ru:"Данные используем только для того, чтобы отправить Вам рекомендацию. Никому не передаём.",
@@ -370,6 +377,8 @@ let contact = {name:"", ig:"", email:"", phone:""};
 let sending = false, sendError = false;
 let hp = "";                   // honeypot — ostaje prazan kod ljudi
 let maxStep = -1;              // najdalje dokle je korisnik stigao (za statistiku)
+let kucao = false, spreman = false;   // da li je počeo da kuca kontakt i da li ga je popunio
+let igPremesten = false;              // upisali su email u polje za Instagram
 let startedAt = 0;             // kada je korisnik krenuo sa popunjavanjem
 
 const view = document.getElementById("view");
@@ -441,8 +450,18 @@ function questionHTML(q, i){
   </section>`;
 }
 
+// dovoljno je ime i JEDAN način da im se javimo
+function kontaktSpreman(){
+  const email = contact.email.trim();
+  return contact.name.trim().length >= 2 && !!(
+    contact.ig.trim() ||
+    (email.indexOf("@") > 0 && email.indexOf(".") > email.indexOf("@")) ||
+    contact.phone.replace(/\D/g, "").length >= 6
+  );
+}
+
 function contactHTML(){
-  const ok = contact.name.trim() && contact.ig.trim();
+  const ok = kontaktSpreman();
   return `<section class="screen">
     <div class="step-label">${esc(t("step"))} ${TOTAL} ${esc(t("of"))} ${TOTAL}</div>
     <h2>${esc(t("contactT"))}</h2>
@@ -455,6 +474,7 @@ function contactHTML(){
     <div class="field">
       <label for="f_ig">${esc(t("ig"))}</label>
       <div class="ig-wrap"><span>@</span><input type="text" id="f_ig" value="${esc(contact.ig)}" placeholder="${esc(t("igPh"))}" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next"></div>
+      <p class="fhint" id="igHint">${esc(igPremesten ? t("igIsMail") : t("igHint"))}</p>
     </div>
     <div class="field">
       <label for="f_email">${esc(t("email"))} <span class="opt-tag">— ${esc(t("optional"))}</span></label>
@@ -519,10 +539,22 @@ function wire(){
         if (v !== e.target.value) e.target.value = v;   // nalepljen link → čist handle
       }
       contact[k] = v;
+      if (!kucao) { kucao = true; track("contact_typing"); }
+      const popunjeno = kontaktSpreman();
+      if (popunjeno && !spreman) { spreman = true; track("contact_ready"); }
       const sendBtn = view.querySelector('[data-act="send"]');
-      if (sendBtn) sendBtn.disabled = !(contact.name.trim() && contact.ig.trim()) || sending;
+      if (sendBtn) sendBtn.disabled = !popunjeno || sending;
     });
     el.addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
+    if (k === "ig") el.addEventListener("blur", () => {
+      const v = contact.ig.trim();
+      if (v.indexOf("@") > 0 && v.indexOf(".") > v.indexOf("@")){   // ovo je email, ne handle
+        if (!contact.email.trim()) contact.email = v;
+        contact.ig = "";
+        igPremesten = true;
+        render();
+      }
+    });
   });
   if (act) act.blur();
 }
@@ -695,7 +727,7 @@ async function submit(){
       finish();
     } catch (err2){
       try { postViaForm(body); finish(); }    // rezerva za in-app browser-e (Instagram/TikTok)
-      catch (e3){ sending = false; sendError = true; render(); }
+      catch (e3){ sending = false; sendError = true; track("send_fail"); render(); }
     }
   }
 }
