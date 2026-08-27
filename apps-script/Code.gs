@@ -95,7 +95,7 @@ function doPost(e) {
     linkifyInstagram(sheet, red, str(data.ig));
     upisiTelefon(sheet, red, str(data.phone));
     notify(data);            // mejl
-    notifyTelegram(data);    // Telegram
+    notifyTelegram(data, red);    // Telegram (red = broj reda u tabeli Prijave)
     return json({ ok: true });
   } catch (err) {
     return json({ ok: false, error: String(err) });
@@ -278,7 +278,7 @@ function escapeHtml(v) {
 
 /* ============ OBAVEŠTENJE NA TELEGRAM ============ */
 
-function notifyTelegram(data) {
+function notifyTelegram(data, red) {
   if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT) return;
   try {
     var L = labels();
@@ -287,7 +287,7 @@ function notifyTelegram(data) {
       return vrednost ? '\n' + naslov + ': <b>' + escapeHtml(vrednost) + '</b>' : '';
     };
 
-    var text = '✨ <b>Nova prijava</b>\n' +
+    var text = '✨ <b>Nova prijava</b>' + (red ? '  ·  red ' + red : '') + '\n' +
       '<b>' + escapeHtml(str(data.name) || 'bez imena') + '</b>' +
       (handle ? ' · @' + escapeHtml(handle) : '') + '\n' +
       linija(L[6],  str(data.direction)) +
