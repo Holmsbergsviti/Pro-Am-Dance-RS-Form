@@ -1,164 +1,67 @@
-# PRONAĐI SVOJ PLES ✨
+# Pronađi svoj ples — lead form for PROAM dance Serbia
 
-Мобильная онлайн-форма для Instagram **PROAM dance Serbia**: пользователь отвечает на 8 вопросов + контакты,
-ответы падают в Google Sheets, подбор школы/тренера делается вручную.
+A mobile-first questionnaire that PROAM dance Serbia links from its Instagram bio and Stories.
+A visitor answers eight one-tap questions about the dance they want, their level, goals, area of
+Belgrade and schedule, leaves a name and Instagram handle, and the answers land in a Google Sheet
+where the studio matches them with a school or coach by hand.
 
-- `index.html` — вся форма (один файл, без сборки и зависимостей)
-- `apps-script/Code.gs` — приём заявок в Google Sheets
-- `assets/` — логотип
+It is a single static `index.html` with no build step and no dependencies, backed by a
+Google Apps Script web app — so there is no server to run or pay for.
 
-## 1. Google Sheets (5 минут)
+## Architecture
 
-1. Создай новую таблицу на [sheets.new](https://sheets.new), назови, например, `PROAM — Leads`.
-2. **Extensions → Apps Script**, удали пример и вставь содержимое `apps-script/Code.gs`.
-3. Сверху выбери функцию **`setupSheet`** → **Run** → разреши доступ (Google предупредит, что скрипт
-   не проверен: *Advanced → Go to project (unsafe)*). В таблице появится лист **Leads** с колонками:
-
-   `Datum | Ime | Instagram | Email | Telefon | Jezik | Ples | Format | Nivo | Cilj | Deo grada | Termin | Koliko često | Najvažnije | Odakle | Status | Beleške`
-
-   В колонке `Status` — выпадающий список: **Novo → Pregledano → Preporuka poslata → Povezano** (с цветовой подсветкой).
-   Английские названия колонок и статусов включаются одной строкой: `var SHEET_LANG = 'en';`
-4. **Deploy → New deployment → тип Web app**:
-   - *Execute as*: **Me**
-   - *Who has access*: **Anyone** ← обязательно, иначе форма не сможет писать
-   - **Deploy** → скопируй URL вида `https://script.google.com/macros/s/AKfy.../exec`
-
-> **Письма о новых заявках.** Впишите адрес в `NOTIFY_EMAIL` в начале скрипта — например
-> `var NOTIFY_EMAIL = 'ana@gmail.com';`, можно несколько через запятую. На каждую заявку приходит
-> письмо в фирменных цветах: имя, все ответы, кнопка «Otvori Instagram profil» и ссылка на таблицу.
-> Проверить без формы: выбрать функцию `testPrijava` → **Run** (создаст тестовую строку и письмо).
-> Письма шлются от аккаунта, которому принадлежит скрипт; лимит бесплатного Google — 100 писем в день.
-
-## 2. Подключить форму
-
-В `index.html`, в самом начале блока `<script>`:
-
-```js
-const CONFIG = {
-  ENDPOINT: "https://script.google.com/macros/s/.../exec",  // ← сюда URL из шага 1.4
-  INSTAGRAM: "proamdance.rs"                                 // ← @proamdance.rs
-};
+```
+index.html (GitHub Pages / Netlify)
+   │  fetch POST  ──or──  hidden-iframe form POST (fallback for in-app browsers)
+   ▼
+Apps Script web app  (apps-script/Code.gs)
+   ├─ spam filters ──────────────▶  "Blocked" sheet, with the reason
+   ├─ appendRow ─────────────────▶  "Leads" sheet (status dropdown, colour-coded rows)
+   ├─ e-mail + Telegram alerts      (independent; one failing never loses the lead)
+   └─ analytics events ──────────▶  "Statistika" sheet → hourly-rebuilt "Pregled" dashboard
 ```
 
-Проверить, что скрипт живой: открой ENDPOINT в браузере — должно ответить `{"ok":true,...}`.
+## Technical highlights
 
-## 3. Публикация (GitHub Pages)
+- **Works inside Instagram's in-app browser** — submission tries `fetch` first and falls back to a
+  classic form POST into a hidden iframe, which avoids the CORS and redirect quirks of in-app
+  WebViews. A draft of the answers is kept in `localStorage` for an hour, so an accidental exit
+  does not lose them.
+- **Spam defence without a CAPTCHA** — the endpoint URL is public, so the script rejects a
+  submission if a hidden honeypot field is filled, if a shared token does not match, if the form was
+  completed faster than a human could (`MIN_SECONDS`), or if it duplicates a lead from the last
+  ten minutes. Rejected leads are logged with the reason instead of silently dropped.
+- **Privacy-light funnel analytics** — the page sends four events (`view`, `start`, `exit` with the
+  last question reached, `submit`) tagged only with a random per-tab session id: no names, IPs or
+  cookies, so no consent banner is needed. A time-driven trigger rebuilds a dashboard with
+  conversion rate, visitors per day and hour, drop-off per question and traffic source (`?src=`).
+- **Three languages** — Serbian, Russian and English, chosen by `?lang=`, a remembered choice or
+  the phone's language. Answers are always stored in Serbian so the sheet stays consistent.
+- **Data-driven questions** — every question is an entry in a `QUESTIONS` array (single or
+  multi-select, "other" free-text options, exclusive options that clear the rest).
+- **Instant notifications** — a branded HTML e-mail and/or a Telegram card with inline buttons to
+  the visitor's Instagram profile and to the sheet.
+
+## Files
+
+| Path | Contents |
+|---|---|
+| `index.html` | The whole form: markup, styles, questions, i18n, submission and analytics |
+| `apps-script/Code.gs` | Web-app endpoint, sheet setup, spam filters, notifications, dashboard |
+| `assets/` | Logos |
+| `netlify.toml` | Static hosting config and cache headers |
+| [`docs/SETUP.ru.md`](docs/SETUP.ru.md) | Full step-by-step setup guide for the studio (in Russian) |
+
+## Running it locally
 
 ```bash
-git add . && git commit -m "Pronadji svoj ples form" && git push
+python3 -m http.server 8000     # then open http://localhost:8000
 ```
 
-Затем в репозитории: **Settings → Pages → Source: Deploy from a branch → `main` / `root` → Save**.
-Через ~1 минуту форма доступна по адресу
-`https://<username>.github.io/Pro-Am-Dance-RS-Form/` — эту ссылку и кладём в шапку Instagram / в Stories.
+Without an `ENDPOINT` configured the form runs end to end and prints the payload to the browser
+console instead of sending it. Deploying the Apps Script and connecting it is covered in
+[`docs/SETUP.ru.md`](docs/SETUP.ru.md).
 
-Альтернативы без Git: перетащить папку на [netlify.com/drop](https://app.netlify.com/drop) или `vercel deploy`.
+## Author
 
-### Метки источника
-
-К ссылке можно добавить `?src=...` — значение попадёт в колонку `Source`:
-`...github.io/Pro-Am-Dance-RS-Form/?src=stories`, `?src=bio`, `?src=reels`.
-
-## Telegram-уведомления
-
-Приходят мгновенно, бесплатно, работают и в личке, и в группе (удобно, когда подбором занимаются двое).
-
-1. В Telegram написать **@BotFather** → команда `/newbot` → придумать имя и username бота →
-   скопировать токен вида `7812345678:AAH...`.
-2. Вписать его в `TELEGRAM_TOKEN` в начале `Code.gs`, сохранить (⌘S).
-3. **Написать своему боту любое сообщение** («привет») — без этого он не имеет права вам писать.
-   Для группы: добавить бота в группу и написать там любое сообщение.
-4. В редакторе выбрать функцию **`telegramChatId`** → **Run** → открыть **Execution log**.
-   Там будет строка `chat_id: 123456789` — вписать это число в `TELEGRAM_CHAT`, сохранить.
-   У групп id отрицательный (`-1002345678901`) — так и должно быть, минус не терять.
-   **Несколько получателей**: перечислить id через запятую — `'123456789, 987654321'`.
-   Каждый из них должен сам сначала написать боту, иначе Telegram запретит отправку.
-5. Проверка: функция **`testTelegram`** → **Run**. В Telegram должна прийти карточка «PROBA»
-   с кнопками «Instagram» и «Tabela».
-6. **Deploy → Manage deployments → ✏️ → New version → Deploy.**
-
-Важно: шаг 4 или 5 нужно запустить вручную **до** деплоя — при первом обращении к внешнему сервису
-Google запросит новое разрешение (`connect to an external service`). Если этого не сделать,
-форма продолжит писать в таблицу, но сообщения в Telegram молча не пойдут.
-
-Уведомления независимы: можно включить только почту, только Telegram или оба сразу.
-Каналы не мешают друг другу — сбой одного не ломает запись заявки в таблицу.
-
-## Таблица для человека, а не для программиста
-
-- Колонки названы по-человечески (`Datum`, `Ime`, `Ples`, `Deo grada`, `Koliko često`…), а не техническими ключами.
-- Ячейка Instagram — **кликабельная ссылка** на профиль: открыть переписку можно прямо из таблицы.
-- Первая строка и две первые колонки закреплены — при прокрутке вправо видно, чья это заявка.
-- Строки в полоску, текст не переносится: одна заявка = одна строка.
-- Статус меняется выпадающим списком и красит строку цветом.
-- Отклонённый спам лежит отдельно, на листе `Blokirano`.
-
-## Что уже учтено
-
-- **Языки**: сербский, русский и английский — переключатель SRB/RUS/ENG в шапке на любом шаге; выбор
-  запоминается. Язык можно задать ссылкой: `?lang=en`, `?lang=ru`, `?lang=sr` (приоритет выше сохранённого).
-  Без параметра язык берётся из настроек телефона: русский → RU, английский → EN, остальные → SR.
-  В таблицу ответы всегда пишутся **по-сербски**, язык пользователя — в колонке `Language`.
-- **Один вопрос на экран**, автопереход после выбора, прогресс-бар, кнопка «назад» + системная кнопка «назад» на Android.
-- **Мультивыбор** для целей, района, времени и приоритетов; варианты «Lokacija mi nije važna» и
-  «Fleksibilan/na sam» сбрасывают остальные.
-- «Drugo» в первом вопросе открывает поле для короткого текста → в таблицу пишется как `Drugo: <текст>`.
-- **Обязательны только Name + Instagram**; email и телефон — опционально.
-- Черновик хранится в localStorage 1 час — случайный выход из in-app браузера Instagram не теряет ответы.
-- Отправка через `fetch` + резервный `form POST` в скрытый iframe (нужно для in-app браузеров Instagram/TikTok).
-
-## Статистика
-
-Отдельная аналитика не подключалась — считаем сами, через тот же эндпоинт.
-
-Форма шлёт четыре события: `view` (открыл страницу), `start` (нажал «Počni»), `exit` (ушёл — с номером
-вопроса, до которого дошёл) и `submit` (отправил). Ни имени, ни IP, ни куки: только случайный номер
-сессии, который живёт, пока открыта вкладка. Поэтому баннер согласия на куки не нужен.
-
-События падают на лист **Statistika**, сводка — на лист **Pregled**:
-
-- сколько человек открыло, сколько начало, сколько отправило, конверсия в процентах;
-- по дням: посетители и заявки, с графиком;
-- по часам: когда приходят — видно, в какое время выкладывать сторис;
-- «Dokle stižu» — воронка по вопросам: на каком именно вопросе люди бросают форму;
-- «Odakle dolaze» — разбивка по метке `?src=` (stories, bio, reels).
-
-Включается один раз: функция **`ukljuciStatistiku`** → **Run**. Она создаёт часовой триггер, и дальше
-`Pregled` пересчитывается сам. Обновить вручную в любой момент — функция **`osveziPregled`**.
-Глубина сводки — `DASH_DAYS` в начале файла (по умолчанию 30 дней).
-
-## Защита от спама
-
-Адрес приёмника виден в коде страницы, поэтому в форму встроены три фильтра — заявка отбрасывается, если:
-
-- заполнено скрытое поле-ловушка `Website` (человек его не видит, бот заполняет всё подряд);
-- не совпал `TOKEN` — прямой POST по одному лишь URL эндпоинта не пройдёт;
-- форма заполнена быстрее `MIN_SECONDS` (6 секунд) или это дубль той же заявки в пределах 10 минут.
-
-Отклонённые заявки не теряются: они пишутся на отдельный лист **Blocked** с причиной — если фильтр
-однажды отсечёт живого человека, это будет видно. Пороги правятся в начале `Code.gs`.
-`TOKEN` в `Code.gs` и `CONFIG.TOKEN` в `index.html` должны совпадать.
-
-## Локальная проверка
-
-```bash
-python3 -m http.server 8000
-```
-
-и открыть `http://localhost:8000`. Без `ENDPOINT` форма работает целиком, но данные не отправляются —
-payload пишется в консоль браузера.
-
-## Как менять вопросы
-
-Все вопросы — в массиве `QUESTIONS` в `index.html`. Один вопрос:
-
-```js
-{
-  key:"level", col:"Level", multi:false,          // multi:true → мультивыбор
-  title:{sr:"Tvoj nivo?", ru:"Твой уровень?"},
-  options:[ O("Početnik","Начинающий"), ... ]     // O(сербский, русский)
-}
-```
-
-Флаги у варианта: `{other:true}` — открыть текстовое поле, `{exclusive:true}` — сбрасывает остальные.
-Если добавляешь новый вопрос — добавь одноимённую колонку в `HEADERS` в `Code.gs` и поле в `appendRow`.
+Vladislav Salii
